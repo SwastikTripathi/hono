@@ -2862,6 +2862,44 @@ describe('DOM', () => {
       expect(effectCount).toBe(2)
       expect(cleanupCount).toBe(1)
     })
+
+    it('does not re-run when a dependency stays NaN', async () => {
+      let effectCount = 0
+
+      const App = () => {
+        const [, setCount] = useState(0)
+        useEffect(() => {
+          effectCount++
+        }, [NaN])
+        return <button onClick={() => setCount((c) => c + 1)}>update</button>
+      }
+      render(<App />, root)
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(effectCount).toBe(1)
+      root.querySelector('button')!.click()
+      await Promise.resolve()
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(effectCount).toBe(1)
+    })
+
+    it('re-runs when a dependency changes from 0 to -0', async () => {
+      let effectCount = 0
+
+      const App = () => {
+        const [value, setValue] = useState<number>(0)
+        useEffect(() => {
+          effectCount++
+        }, [value])
+        return <button onClick={() => setValue(-0)}>toggle</button>
+      }
+      render(<App />, root)
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(effectCount).toBe(1)
+      root.querySelector('button')!.click()
+      await Promise.resolve()
+      await new Promise((resolve) => setTimeout(resolve))
+      expect(effectCount).toBe(2)
+    })
   })
 
   describe('useLayoutEffect', () => {
